@@ -27,6 +27,8 @@ static bool check_talk_button();
 
 uint16_t master_addr = 0x0000;
 uint16_t time_msg_sent = 0;
+bool warning_issued = false;
+bool expired_issued = false;
 
 #define MAX_PLAYERS 10
 struct players
@@ -51,6 +53,65 @@ void rules_init()
     }
 }
 
+// if a player is in the talking state and someone else is in the waiting state,
+// increment the time_talking of the player.
+static void update_talking_time()
+{
+    for (int i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (players[i].addr != 0 && players[i].state == state_talking)
+        {
+            for (int j = 0; j < MAX_PLAYERS; j++)
+            {
+                if (players[j].addr != 0 && players[j].state == state_waiting)
+                {
+                    ++players[i].time_talking;
+                    return;
+                }
+            }
+        }
+    }
+}
+
+// warn the talking player if they have been talking for more than WARNING_TIME seconds
+// if it has been more than EXPIRED_TIME seconds, send a cmd_talk_expired to all players
+// after 2 more seconds, set the players state to state_listen and add 2 * EXPIRED_TIME to
+// their time_total
+
+void check_talk_time()
+{
+    for (int i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (players[i].addr != 0 && players[i].state == state_talking)
+        {
+            if (players[i].time_talking == SHUTUP_TIME)
+            {
+                broadcast_command(cmd_talk_expired_reset);
+                private_command(players[i].addr, cmd_listening);
+                players[i].state = state_listening;
+                players[i].time_talking = 0;
+                players[i].time_total += 2 * EXPIRED_TIME;
+                printk("shutup issued\n");
+            }
+            else if (players[i].time_talking == EXPIRED_TIME)
+            {
+                broadcast_command(cmd_talk_expired);
+                printk("expired issued\n");
+            }
+            else if (players[i].time_talking == WARNING_TIME)
+            {
+                private_command(players[i].addr, cmd_talk_warning);
+                printk("warning issued\n");
+            }
+            else
+            {
+                // printk("time_talking: %d\n", players[i].time_talking);
+            }
+            return;
+        }
+    }
+}
+
 void set_talk_request(uint16_t addr, bool request)
 {
     for (int i = 0; i < MAX_PLAYERS; i++)
@@ -58,6 +119,7 @@ void set_talk_request(uint16_t addr, bool request)
         if (players[i].addr == addr)
         {
             players[i].talk_request = request;
+            players[i].time_talking = 0;
             return;
         }
     }
@@ -80,10 +142,15 @@ void turnzupMessages(char cmd, uint16_t sender_addr)
     case cmd_new_session:
         master_addr = sender_addr;
         state = state_listening;
+        warning_issued = false;
+        expired_issued = false;
+        rules_init();
         break;
 
     case cmd_listening:
         state = state_listening;
+        warning_issued = false;
+        expired_issued = false;
         break;
 
     case cmd_waiting:
@@ -99,10 +166,17 @@ void turnzupMessages(char cmd, uint16_t sender_addr)
         break;
 
     case cmd_talk_warning:
+        warning_issued = true;
         break;
 
     case cmd_talk_expired:
-        state = state_startup;
+        // state = state_startup;
+        expired_issued = true;
+        break;
+
+    case cmd_talk_expired_reset:
+        warning_issued = false;
+        expired_issued = false;
         break;
 
     default:
@@ -186,6 +260,9 @@ static void set_new_talker()
 
 void stateMachine()
 {
+    update_talking_time();
+    check_talk_time();
+
     if (check_master_button())
     {
         time_msg_sent = get_timer();
@@ -199,6 +276,21 @@ void stateMachine()
 
     master_handle_talk_requests();
     set_new_talker();
+
+    if (expired_issued)
+    {
+        if ((get_timer() % BLINK_TIME) < (BLINK_TIME / 2))
+        {
+            set_led_left(RED);
+            set_led_right(BLUE);
+        }
+        else
+        {
+            set_led_left(GREEN);
+            set_led_right(RED);
+        }
+        return;
+    }
 
     switch (state)
     {
@@ -253,8 +345,8 @@ static void waiting_state()
         time_msg_sent = get_timer();
         private_command(master_addr, cmd_talk_request);
     }
-    set_led_left(CYAN);
-    set_led_right(CYAN);
+    set_led_left(GREEN);
+    set_led_right(BLUE);
 }
 
 static void talking_state()
@@ -264,13 +356,21 @@ static void talking_state()
         time_msg_sent = get_timer();
         private_command(master_addr, cmd_talk_request);
     }
-    set_led_left(GREEN);
-    set_led_right(GREEN);
-}
 
+    if (warning_issued)
+    {
+        set_led_left(RED);
+        set_led_right(RED);
+    }
+    else
+    {
+        set_led_left(GREEN);
+        set_led_right(GREEN);
+    }
+}
 
 static void startup_state()
 {
     set_led_left(RED);
-    set_led_right(GREEN);
+    set_led_right(BLUE);
 }

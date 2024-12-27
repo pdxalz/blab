@@ -87,7 +87,7 @@ int main(void)
 	// int lit = 0;
 	while (1)
 	{
-		k_sleep(K_MSEC(50));
+		k_sleep(K_MSEC(TICK_INTERVAL_MS));
 		timer_tick();
 
 		// z_set_leds_state(lit, 0x7);
