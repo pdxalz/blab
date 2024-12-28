@@ -116,7 +116,6 @@ static void set_talk_request(uint16_t addr, bool request)
         if (players[i].addr == addr)
         {
             players[i].talk_request = request;
-            players[i].time_talking = 0;
             return;
         }
     }
