@@ -75,6 +75,10 @@ arduino_serial: &uart0 {
 			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
 			label = "Right Green LED";
 		};
+		ledg: led_g {
+			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+			label = "fix for bad gpio port";
+		};
 	};
 
 

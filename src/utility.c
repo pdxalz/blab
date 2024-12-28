@@ -46,8 +46,8 @@ bool timer_expired(int starttime, int duration)
 
 int z_set_leds_state(uint32_t leds_on_mask, uint32_t leds_off_mask)
 {
-    if ((leds_on_mask & ~0x3f) != 0 ||
-        (leds_off_mask & ~0x3f) != 0)
+    if ((leds_on_mask & ~0x7f) != 0 ||
+        (leds_off_mask & ~0x7f) != 0)
     {
         return -EINVAL;
     }
@@ -99,7 +99,10 @@ int z_leds_init(void)
 
 void set_led_left(uint32_t val)
 {
-    z_set_leds_state(val, 0x07);
+    // hack to fix the bad left led on one board
+    val = val | ((val & BLUE) << 6);
+    z_set_leds_state(val, 0x47);
+    //  z_set_leds_state(val, 0x47);
 }
 
 void set_led_right(uint32_t val)
