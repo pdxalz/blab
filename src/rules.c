@@ -61,10 +61,13 @@ static void update_talking_time()
     {
         if (players[i].addr != 0 && players[i].state == state_talking)
         {
+            // track the total time the player has been talking
+            ++players[i].time_total;
             for (int j = 0; j < MAX_PLAYERS; j++)
             {
                 if (players[j].addr != 0 && players[j].state == state_waiting)
                 {
+                    // track the time the player has been talking since someone else has been waiting
                     ++players[i].time_talking;
                     return;
                 }
@@ -80,6 +83,12 @@ static void update_talking_time()
 
 void check_talk_time()
 {
+    // print the time_talking and time_total for each player every second
+    if ((get_timer() % (1000 / TICK_INTERVAL_MS)) == 0)
+    {
+        printk("time:  (%d  %d),  (%d, %d), (%d, %d)\n",
+               players[0].time_talking, players[0].time_total, players[1].time_talking, players[1].time_total, players[2].time_talking, players[2].time_total);
+    }
     for (int i = 0; i < MAX_PLAYERS; i++)
     {
         if (players[i].addr != 0 && players[i].state == state_talking)
@@ -90,7 +99,7 @@ void check_talk_time()
                 private_command(players[i].addr, cmd_listening);
                 players[i].state = state_listening;
                 players[i].time_talking = 0;
-                players[i].time_total += 2 * EXPIRED_TIME;
+                players[i].time_total += OVERTIME_PENALTY;
                 printk("shutup issued\n");
             }
             else if (players[i].time_talking == EXPIRED_TIME)
@@ -112,6 +121,9 @@ void check_talk_time()
     }
 }
 
+// The master has received a cmd_talk_request from a player.
+// Add the player to the player array, then handle the request later
+// in the state machine
 void set_talk_request(uint16_t addr, bool request)
 {
     for (int i = 0; i < MAX_PLAYERS; i++)
@@ -119,7 +131,6 @@ void set_talk_request(uint16_t addr, bool request)
         if (players[i].addr == addr)
         {
             players[i].talk_request = request;
-            players[i].time_talking = 0;
             return;
         }
     }
@@ -151,6 +162,8 @@ void turnzupMessages(char cmd, uint16_t sender_addr)
         state = state_listening;
         warning_issued = false;
         expired_issued = false;
+        printk("time:  (%d  %d),  (%d, %d), (%d, %d)\n",
+               players[0].time_talking, players[0].time_total, players[1].time_talking, players[1].time_total, players[2].time_talking, players[2].time_total);
         break;
 
     case cmd_waiting:
@@ -163,6 +176,10 @@ void turnzupMessages(char cmd, uint16_t sender_addr)
 
     case cmd_talk_start:
         state = state_talking;
+
+        printk("time:  (%d  %d),  (%d, %d), (%d, %d)\n",
+               players[0].time_talking, players[0].time_total, players[1].time_talking, players[1].time_total, players[2].time_talking, players[2].time_total);
+
         break;
 
     case cmd_talk_warning:
@@ -205,28 +222,18 @@ static void master_handle_talk_requests()
     {
         if (players[i].addr != 0 && players[i].talk_request)
         {
+            players[i].time_talking = 0;
+            players[i].talk_request = false;
+
             if (players[i].state == state_talking || players[i].state == state_waiting)
             {
                 private_command(players[i].addr, cmd_listening);
                 players[i].state = state_listening;
-                players[i].talk_request = false;
             }
             else
             {
-                // if no one is talking, start talking
-                if (no_one_talking())
-                {
-                    private_command(players[i].addr, cmd_talk_start);
-                    players[i].state = state_talking;
-                    players[i].talk_request = false;
-                    return;
-                }
-                else
-                {
-                    private_command(players[i].addr, cmd_waiting);
-                    players[i].state = state_waiting;
-                    players[i].talk_request = false;
-                }
+                private_command(players[i].addr, cmd_waiting);
+                players[i].state = state_waiting;
             }
         }
     }
