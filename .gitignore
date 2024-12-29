@@ -1,3 +1,6 @@
 .vscode/settings.json
 sample.yaml
 build/
+pcb/fp-info-cache
+pcb - Copy/fp-info-cache
+pcb/_autosave-blab_badge.sch
