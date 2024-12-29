@@ -10,21 +10,11 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-
 #include <zephyr/kernel.h>
-#include <zephyr/drivers/led_strip.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
-
-#include <zephyr/drivers/spi.h>
-#include <zephyr/drivers/pwm.h>
 #include <zephyr/sys/util.h>
-
-// #include "command.h"
-// #include "led.h"
-//  #include "servo.h"
-
 #include <zephyr/bluetooth/bluetooth.h>
 #include <bluetooth/mesh/models.h>
 #include <bluetooth/mesh/dk_prov.h>
@@ -47,7 +37,6 @@ static void bt_ready(int err)
 	printk("Bluetooth initialized\n");
 
 	rules_init();
-
 	dk_leds_init();
 	dk_buttons_init(NULL);
 
@@ -81,18 +70,10 @@ int main(void)
 		printk("Bluetooth init failed (err %d)\n", err);
 	}
 
-	// z_set_leds_state(0x24, 0x38);
-	// while (1)
-	// 	check_buttons();
-	// int lit = 0;
 	while (1)
 	{
 		k_sleep(K_MSEC(TICK_INTERVAL_MS));
 		timer_tick();
-
-		// z_set_leds_state(lit, 0x7);
-		// lit = (lit + 1) & 0x7;
-
 		stateMachine();
 	}
 	return 0;

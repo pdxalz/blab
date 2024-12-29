@@ -10,9 +10,6 @@
 #include <bluetooth/mesh/models.h>
 #include <dk_buttons_and_leds.h>
 
-// #include <zephyr/shell/shell.h>
-// #include <zephyr/shell/shell_uart.h>
-
 #include "chat_cli.h"
 #include "model_handler.h"
 #include "rules.h"
@@ -22,14 +19,6 @@
 
 LOG_MODULE_DECLARE(chat);
 
-// static const struct shell *chat_shell;
-
-/******************************************************************************/
-/*************************** Health server setup ******************************/
-/******************************************************************************/
-/* Set up a repeating delayed work to blink the DK's LEDs when attention is
- * requested.
- */
 static struct k_work_delayable attention_blink_work;
 static bool attention;
 
@@ -201,49 +190,28 @@ static void handle_chat_presence(struct bt_mesh_chat_cli *chat,
 }
 
 // global message received
+// we handle messages sent from our own address just like any other message
 static void handle_chat_message(struct bt_mesh_chat_cli *chat,
 								struct bt_mesh_msg_ctx *ctx,
 								const uint8_t *msg)
 {
 	turnzupMessages(msg[0], ctx->addr);
-	printk("         recG: %c %d\n", msg[0], ctx->addr);
-
-	/* Don't print own messages. */
-	// if (address_is_local(chat->model, ctx->addr))
-	// {
-	// 	set_led_left(GREEN);
-	// 	set_led_right(RED);
-	// }
-	// else
-	// {
-	// 	set_led_left(GREEN);
-	// 	set_led_right(BLUE);
-	// }
-
-	// shell_print(chat_shell, "<0x%04X>: %s", ctx->addr, msg);
+	// printk("         recG: %c %d\n", msg[0], ctx->addr);
 }
 
+// private message received
+// we handle messages sent from our own address just like any other message
 static void handle_chat_private_message(struct bt_mesh_chat_cli *chat,
 										struct bt_mesh_msg_ctx *ctx,
 										const uint8_t *msg)
 {
 	turnzupMessages(msg[0], ctx->addr);
-
-	printk("         rec: %c %d\n", msg[0], ctx->addr);
-
-	/* Don't print own messages. */
-	if (address_is_local(chat->model, ctx->addr))
-	{
-		return;
-	}
-
-	// shell_print(chat_shell, "<0x%04X>: *you* %s", ctx->addr, msg);
+	//	printk("         rec: %c %d\n", msg[0], ctx->addr);
 }
 
 static void handle_chat_message_reply(struct bt_mesh_chat_cli *chat,
 									  struct bt_mesh_msg_ctx *ctx)
 {
-	// shell_print(chat_shell, "<0x%04X> received the message", ctx->addr);
 }
 
 static const struct bt_mesh_chat_cli_handlers chat_handlers = {
@@ -273,18 +241,10 @@ static void print_client_status(void)
 {
 	if (!bt_mesh_is_provisioned())
 	{
-		// shell_print(chat_shell,
-		// 			"The mesh node is not provisioned. Please provision the mesh node before using the chat.");
 	}
 	else
 	{
-		// shell_print(chat_shell,
-		// 			"The mesh node is provisioned. The client address is 0x%04x.",
-		// bt_mesh_model_elem(chat.model)->addr);
 	}
-
-	// shell_print(chat_shell, "Current presence: %s",
-	// 			presence_string[chat.presence]);
 }
 
 static const struct bt_mesh_comp comp = {
@@ -293,12 +253,10 @@ static const struct bt_mesh_comp comp = {
 	.elem_count = ARRAY_SIZE(elements),
 };
 
-
-
 int broadcast_command(char cmd)
 {
 	int err;
-    static char msg_buf[2] = {0, 0};
+	static char msg_buf[2] = {0, 0};
 
 	msg_buf[0] = cmd;
 	err = bt_mesh_chat_cli_message_send(&chat, msg_buf);
@@ -306,17 +264,17 @@ int broadcast_command(char cmd)
 	{
 		LOG_WRN("Failed to send message: %d", err);
 	}
-	printk("Gmsg %c)\n", cmd);
+	// printk("Gmsg %c)\n", cmd);
 
 	return 0;
 }
 
-void private_command(uint16_t addr,  char cmd)
+void private_command(uint16_t addr, char cmd)
 {
 	int err;
 	static char msg_buf[2] = {0, 0};
 
-	printk("Pmsg %c %d\n", cmd, addr);
+	// printk("Pmsg %c %d\n", cmd, addr);
 
 	msg_buf[0] = cmd;
 	err = bt_mesh_chat_cli_private_message_send(&chat, addr, msg_buf);
@@ -326,21 +284,12 @@ void private_command(uint16_t addr,  char cmd)
 	}
 }
 
-// SHELL_CMD_ARG_REGISTER(chat, &chat_cmds, "Bluetooth Mesh Chat Client commands",
-// 					   cmd_chat, 1, 1);
-
-// SHELL_CMD_ARG_REGISTER(z, NULL, "Eyes",
-// 					   cmd_eyes, 1, 1);
-
 /******************************************************************************/
 /******************************** Public API **********************************/
 /******************************************************************************/
 const struct bt_mesh_comp *model_handler_init(void)
 {
 	k_work_init_delayable(&attention_blink_work, attention_blink);
-
-	// chat_shell = shell_backend_uart_get_ptr();
-	// shell_print(chat_shell, ">>> Bluetooth Mesh Chat sample <<<");
 
 	return &comp;
 }

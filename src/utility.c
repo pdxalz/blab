@@ -5,10 +5,8 @@
 #include <zephyr/sys/util.h>
 #include <dk_buttons_and_leds.h>
 
-#include <zephyr/drivers/led_strip.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/spi.h>
-#include <zephyr/drivers/pwm.h>
 #include <zephyr/sys/util.h>
 
 #include "rules.h"
@@ -39,11 +37,13 @@ int get_timer()
     return counter;
 }
 
+// return true if the timer has expired
 bool timer_expired(int starttime, int duration)
 {
     return (get_timer() - starttime) > duration;
 }
 
+// set LEDs on or off
 int z_set_leds_state(uint32_t leds_on_mask, uint32_t leds_off_mask)
 {
     if ((leds_on_mask & ~0x7f) != 0 ||
@@ -80,6 +80,7 @@ int z_set_leds_state(uint32_t leds_on_mask, uint32_t leds_off_mask)
     return 0;
 }
 
+// initialize the LEDs
 int z_leds_init(void)
 {
     int err;
@@ -97,6 +98,7 @@ int z_leds_init(void)
     return z_set_leds_state(0, 0x3f);
 }
 
+// set the left LED
 void set_led_left(uint32_t val)
 {
     // hack to fix the bad left led on one board
@@ -105,48 +107,16 @@ void set_led_left(uint32_t val)
     //  z_set_leds_state(val, 0x47);
 }
 
+// set the right LED
 void set_led_right(uint32_t val)
 {
     z_set_leds_state(val << 3, 0x38);
 }
 
+// return true if the button is pressed
 bool isButtonPressed(uint32_t button)
 {
     uint32_t button_state = 0;
     dk_read_buttons(&button_state, NULL);
     return button_state & button;
-}  
-
-
-uint32_t button_old_state = 0;
-void check_buttons(void)
-{
-    uint32_t button_state = 0;
-    dk_read_buttons(&button_state, NULL);
-
-    z_set_leds_state(button_state ? 8 : 0x10, 0x38);
-
-    if (button_state != button_old_state)
-    {
-        button_old_state = button_state;
-        if (button_state != 0)
-        {
-                       z_set_leds_state(button_state ? 0x30 : 0x20, 0x38);
-//            broadcast_command("Hello");
-            k_sleep(K_MSEC(1000));
-        }
-    }
 }
-
-void got_message(void)
-{
-    set_led_left(RED);
-    set_led_right(GREEN);
-    k_sleep(K_MSEC(1000));
-}
-
-// if (button_state != 0)
-// {
-// 	k_sleep(K_MSEC(1000));
-// 	printk("Bluetooth init failed (err %d)\n", err);
-// }
