@@ -1,0 +1,8 @@
+.vscode/settings.json
+sample.yaml
+build/
+pcb/fp-info-cache
+pcb - Copy/fp-info-cache
+pcb/_autosave-blab_badge.sch
+3D_Print/blab_badge_back.mtl
+3D_Print/blab_badge.mtl
