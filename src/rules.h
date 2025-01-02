@@ -2,7 +2,7 @@
 #define RULES_H__
 
 #define TICK_INTERVAL_MS 50
-
+#define CLICK_TIME (1000 / TICK_INTERVAL_MS) // time until another click is allowed
 #define WARNING_TIME (30 * 1000 / TICK_INTERVAL_MS) // time until warning is issued
 #define EXPIRED_TIME (40 * 1000 / TICK_INTERVAL_MS) // time until expired is issued
 #define SHUTUP_TIME (43 * 1000 / TICK_INTERVAL_MS)  // time until flashing ends

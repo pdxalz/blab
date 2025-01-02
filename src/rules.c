@@ -199,12 +199,12 @@ static void set_new_talker()
 
 static bool check_master_button()
 {
-    return (isButtonPressed(MASTER_BTN) && timer_expired(time_msg_sent, 4));
+    return (isButtonPressed(MASTER_BTN) && timer_expired(time_msg_sent, CLICK_TIME));
 }
 
 static bool check_talk_button()
 {
-    return (isButtonPressed(TALK_BTN) && timer_expired(time_msg_sent, 4));
+    return (isButtonPressed(TALK_BTN) && timer_expired(time_msg_sent, CLICK_TIME));
 }
 
 // listen state function
